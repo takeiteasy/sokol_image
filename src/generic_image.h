@@ -30,6 +30,11 @@ int32_t RGB(uint8_t r, uint8_t g, uint8_t b);
 int32_t RGBA1(uint8_t c, uint8_t a);
 int32_t RGB1(uint8_t c);
 
+int32_t RGBAf(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+int32_t RGBf(uint8_t r, uint8_t g, uint8_t b);
+int32_t RGBA1f(uint8_t c, uint8_t a);
+int32_t RGB1f(uint8_t c);
+
 uint8_t Rgba(int32_t c);
 uint8_t rGba(int32_t c);
 uint8_t rgBa(int32_t c);
@@ -127,6 +132,24 @@ int32_t RGB1(uint8_t c) {
     return RGB(c, c, c);
 }
 
+#define _F2I(X) (uint8_t)((float)(X) * 255.f)
+
+int32_t RGBAf(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    return RGBA(_F2I(r), _F2I(g), _F2I(b), _F2I(a));
+}
+
+int32_t RGBf(uint8_t r, uint8_t g, uint8_t b) {
+    return RGBAf(r, g, b, 1.f);
+}
+
+int32_t RGBA1f(uint8_t c, uint8_t a) {
+    return RGBAf(c, c, c, a);
+}
+
+int32_t RGB1f(uint8_t c) {
+    return RGBf(c, c, c);
+}
+
 uint8_t Rgba(int32_t c) {
     return (uint8_t)((c >> 24) & 0xFF);
 }
@@ -162,11 +185,10 @@ int32_t RGBa(int32_t c, uint8_t a) {
 bool image_empty(int w, int h, int32_t color, generic_image* dst) {
     if (w <= 0 || h <= 0)
         return false;
-    generic_image result = (generic_image) {
-        .width = w,
-        .height = h,
-        .buffer = (int32_t*)malloc(w * h * sizeof(generic_image))
-    };
+    if (!(dst->buffer = (int32_t*)malloc(w * h * sizeof(int32_t))))
+        return false;
+    dst->width = w;
+    dst->height = h;
     if (!color)
         memset(dst->buffer, 0, w * h * sizeof(int32_t));
     else
@@ -212,16 +234,16 @@ static int check_if_qoi(unsigned char *data) {
 bool image_load_from_memory(const void *data, size_t data_size, generic_image* dst) {
     if (!data || data_size <= 0)
         return false;
-    int _w, _h, c;
+    int _w, _h, c = 0;
     unsigned char *img_data = NULL;
     if (check_if_qoi((unsigned char*)data)) {
         qoi_desc desc;
-        if (!(img_data = qoi_decode(data, data_size, &desc, 4)))
+        if (!(img_data = qoi_decode(data, (int)data_size, &desc, 4)))
             return false;
         _w = desc.width;
         _h = desc.height;
     } else
-        if (!(img_data = stbi_load_from_memory(data, data_size, &_w, &_h, &c, 4)))
+        if (!(img_data = stbi_load_from_memory(data, (int)data_size, &_w, &_h, &c, 4)))
             return false;
     if (_w <= 0 || _h <= 0 || c < 3) {
         free(img_data);
@@ -310,10 +332,8 @@ void image_flood(generic_image *img, int x, int y, int32_t color) {
 }
 
 void image_pset(generic_image *img, int x, int y, int32_t color) {
-    if (x >= 0 && y >= 0 && x < img->width && y < img->height) {
-        int a = rgbA(color);
+    if (x >= 0 && y >= 0 && x < img->width && y < img->height)
         img->buffer[y * img->width + x] = color;
-    }
 }
 
 int image_pget(generic_image *img, int x, int y) {
