@@ -1,94 +1,112 @@
-/* generic_image.h -- https://github.com/takeiteasy/generic_image
+/* sokol_image.h -- https://github.com/takeiteasy/sokol_image
 
- Copyright (C) 2025  George Watson
+ The MIT License (MIT)
 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
+ Copyright (c) 2024 George Watson
 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without restriction,
+ including without limitation the rights to use, copy, modify, merge,
+ publish, distribute, sublicense, and/or sell copies of the Software,
+ and to permit persons to whom the Software is furnished to do so,
+ subject to the following conditions:
 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <https://www.gnu.org/licenses/>. */
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
 
-#ifndef GENERIC_IMAGE_HEADER
-#define GENERIC_IMAGE_HEADER
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
+
+#ifndef SOKOL_IMAGE_HEADER
+#define SOKOL_IMAGE_HEADER
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+#ifndef __has_include
+#define __has_include(x) 1
+#endif
+
+#ifndef SOKOL_GFX_INCLUDED
+#if __has_include("sokol_gfx.h")
+#include "sokol_gfx.h"
+#else
+#error Please include sokol_gfx.h before sokol_image.h
+#endif
+#endif
+
+#ifndef SOKOL_COLOR_INCLUDED
+#if __has_include("sokol_color.h")
+#include "sokol_color.h"
+#else
+#ifdef __cplusplus
+#define SOKOL_COLOR_CONSTEXPR constexpr
+#else
+#define SOKOL_COLOR_CONSTEXPR const
+#endif
+static SOKOL_COLOR_CONSTEXPR sg_color sg_black = { 0.0f, 0.0f, 0.0f, 1.0f };
+#endif
+#endif
+
 #include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
 
-int32_t RGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-int32_t RGB(uint8_t r, uint8_t g, uint8_t b);
-int32_t RGBA1(uint8_t c, uint8_t a);
-int32_t RGB1(uint8_t c);
-
-int32_t RGBAf(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-int32_t RGBf(uint8_t r, uint8_t g, uint8_t b);
-int32_t RGBA1f(uint8_t c, uint8_t a);
-int32_t RGB1f(uint8_t c);
-
-uint8_t Rgba(int32_t c);
-uint8_t rGba(int32_t c);
-uint8_t rgBa(int32_t c);
-uint8_t rgbA(int32_t c);
-
-int32_t rGBA(int32_t c, uint8_t r);
-int32_t RgBA(int32_t c, uint8_t g);
-int32_t RGbA(int32_t c, uint8_t b);
-int32_t RGBa(int32_t c, uint8_t a);
-
-typedef struct image_t {
+typedef struct image_buffer {
     unsigned int width, height;
     int32_t *buffer;
-} generic_image;
+} simage_buffer;
 
-bool image_empty(int w, int h, int32_t color, generic_image* dst);
-bool image_load_from_path(const char *path, generic_image* dst);
-bool image_load_from_memory(const void *data, size_t length, generic_image* dst);
-bool image_save(generic_image *img, const char *path);
-void image_destroy(generic_image *img);
+bool simage_empty(unsigned int w, unsigned int h, sg_color color, simage_buffer *dst);
+bool simage_load_from_path(const char *path, simage_buffer *dst);
+bool simage_load_from_memory(const void *data, size_t length, simage_buffer *dst);
+void simage_destroy_buffer(simage_buffer *img);
+void simage_pset(simage_buffer *img, int x, int y, sg_color color);
+sg_color simage_pget(simage_buffer *img, int x, int y);
 
-void image_fill(generic_image *img, int32_t color);
-void image_flood(generic_image *img, int x, int y, int32_t color);
-void image_pset(generic_image *img, int x, int y, int32_t color);
-int image_pget(generic_image *img, int x, int y);
-void image_paste(generic_image *dst, generic_image *src, int x, int y);
-void image_clipped_paste(generic_image *dst, generic_image *src, int x, int y, int rx, int ry, int rw, int rh);
-void image_resize(generic_image *src, int nw, int nh);
-void image_rotate(generic_image *src, float angle);
-void image_clip(generic_image *src, int rx, int ry, int rw, int rh);
+void simage_fill(simage_buffer *img, sg_color color);
+void simage_flood(simage_buffer *img, int x, int y, sg_color color);
+void simage_paste(simage_buffer *dst, simage_buffer *src, int x, int y);
+void simage_clipped_paste(simage_buffer *dst, simage_buffer *src, int x, int y, int rx, int ry, int rw, int rh);
+void simage_resize(simage_buffer *src, int nw, int nh);
+void simage_rotate(simage_buffer *src, float angle);
+void simage_clip(simage_buffer *src, int rx, int ry, int rw, int rh);
 
-#ifdef GENERIC_USE_BLOCKS
-typedef int(^image_callback_t)(int x, int y, int32_t color);
-#else
-typedef int(*image_callback_t)(int x, int y, int32_t color);
-#endif
-void image_pass_thru(generic_image *img, image_callback_t fn);
+bool simage_dupe(simage_buffer *src, simage_buffer *dst);
+bool simage_resized(simage_buffer *src, int nw, int nh, simage_buffer *dst);
+bool simage_rotated(simage_buffer *src, float angle, simage_buffer *dst);
+bool simage_clipped(simage_buffer *src, int rx, int ry, int rw, int rh, simage_buffer *dst);
 
-bool image_dupe(generic_image *src, generic_image *dst);
-bool image_resized(generic_image *src, int nw, int nh, generic_image *dst);
-bool image_rotated(generic_image *src, float angle, generic_image *dst);
-bool image_clipped(generic_image *src, int rx, int ry, int rw, int rh, generic_image *dst);
+void simage_draw_line(simage_buffer *img, int x0, int y0, int x1, int y1, sg_color color);
+void simage_draw_circle(simage_buffer *img, int xc, int yc, int r, sg_color color, int fill);
+void simage_draw_rectangle(simage_buffer *img, int x, int y, int w, int h, sg_color color, int fill);
+void simage_draw_triangle(simage_buffer *img, int x0, int y0, int x1, int y1, int x2, int y2, sg_color color, int fill);
 
-void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t color);
-void image_draw_circle(generic_image *img, int xc, int yc, int r, int32_t color, int fill);
-void image_draw_rectangle(generic_image *img, int x, int y, int w, int h, int32_t color, int fill);
-void image_draw_triangle(generic_image *img, int x0, int y0, int x1, int y1, int x2, int y2, int32_t color, int fill);
+sg_image sg_empty_texture(unsigned int width, unsigned int height);
+sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height);
+sg_image sg_load_texture_from_memory(unsigned char *data, size_t data_size, unsigned int *width, unsigned int *height);
+sg_image sg_load_texture_from_buffer(simage_buffer *img);
+void sg_update_texture_from_buffer(sg_image texture, simage_buffer *img);
 
 #if defined(__cplusplus)
 }
 #endif
-#endif // GENERIC_IMAGE_HEADER
+#endif // SOKOL_IMAGE_HEADER
 
-#if defined(GENERIC_IMPL) ||defined(GENERIC_IMAGE_IMPL)
+#ifdef SOKOL_IMAGE_IMPL
+#ifdef _WIN32
+#include <io.h>
+#include <dirent.h>
+#define F_OK 0
+#define access _access
+#else
+#include <unistd.h>
+#endif
+
 #define STB_IMAGE_IMPLEMENTATION
 /* stb_image - v2.27 - public domain image loader - http://nothings.org/stb
                                   no warranty implied; use at your own risk
@@ -7988,108 +8006,35 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
 
-#ifdef _WIN32
-#include <io.h>
-#include <dirent.h>
-#define F_OK 0
-#define access _access
-#else
-#include <unistd.h>
-#endif
+#define _RGBA(R, G, B, A) (((unsigned int)(R) << 24) | ((unsigned int)(B) << 16) | ((unsigned int)(G) << 8) | (A))
+#define _F2I(F) (int)((F) * 255.f)
+#define _I2F(I) (float)((float)(I) / 255.f)
 
-#define _SWAP(a, b)   \
-    do                \
-    {                 \
-        int temp = a; \
-        a = b;        \
-        b = temp;     \
-    } while (0)
-#define _MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define _MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define _CLAMP(v, low, high)  ((v) < (low) ? (low) : ((v) > (high) ? (high) : (v)))
-#define _RADIANS(a) ((a) * M_PI / 180.0)
-
-int32_t RGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    return ((uint8_t)r << 24) | ((uint8_t)g << 16) | ((uint8_t)b << 8) | a;
+static uint32_t sg_color_to_int(sg_color color) {
+    return _RGBA(_F2I(color.r), _F2I(color.g), _F2I(color.b), _F2I(color.a));
 }
 
-int32_t RGB(uint8_t r, uint8_t g, uint8_t b) {
-    return RGBA(r, g, b, 255);
+static sg_color int_to_sg_color(int32_t color) {
+    return (sg_color) {
+        .r = _I2F((color >> 24) & 0xFF),
+        .g = _I2F((color >> 16) & 0xFF),
+        .b = _I2F((color >> 8) & 0xFF),
+        .a = _I2F(color & 0xFF)
+    };
 }
 
-int32_t RGBA1(uint8_t c, uint8_t a) {
-    return RGBA(c, c, c, a);
-}
-
-int32_t RGB1(uint8_t c) {
-    return RGB(c, c, c);
-}
-
-#define _F2I(X) (uint8_t)((float)(X) * 255.f)
-
-int32_t RGBAf(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    return RGBA(_F2I(r), _F2I(g), _F2I(b), _F2I(a));
-}
-
-int32_t RGBf(uint8_t r, uint8_t g, uint8_t b) {
-    return RGBAf(r, g, b, 1.f);
-}
-
-int32_t RGBA1f(uint8_t c, uint8_t a) {
-    return RGBAf(c, c, c, a);
-}
-
-int32_t RGB1f(uint8_t c) {
-    return RGBf(c, c, c);
-}
-
-uint8_t Rgba(int32_t c) {
-    return (uint8_t)((c >> 24) & 0xFF);
-}
-
-uint8_t rGba(int32_t c) {
-    return (uint8_t)((c >>  16) & 0xFF);
-}
-
-uint8_t rgBa(int32_t c) {
-    return (uint8_t)((c >> 8) & 0xFF);
-}
-
-uint8_t rgbA(int32_t c) {
-    return (uint8_t)(c & 0xFF);
-}
-
-int32_t rGBA(int32_t c, uint8_t r) {
-    return (c & ~0x00FF0000) | (r << 24);
-}
-
-int32_t RgBA(int32_t c, uint8_t g) {
-    return (c & ~0x0000FF00) | (g << 16);
-}
-
-int32_t RGbA(int32_t c, uint8_t b) {
-    return (c & ~0x000000FF) | (b << 8);
-}
-
-int32_t RGBa(int32_t c, uint8_t a) {
-    return (c & ~0x00FF0000) | a;
-}
-
-bool image_empty(int w, int h, int32_t color, generic_image* dst) {
+bool simage_empty(unsigned int w, unsigned int h, sg_color color, simage_buffer *dst) {
     if (w <= 0 || h <= 0)
-        return false;
-    if (!(dst->buffer = (int32_t*)malloc(w * h * sizeof(int32_t))))
         return false;
     dst->width = w;
     dst->height = h;
-    if (!color)
-        memset(dst->buffer, 0, w * h * sizeof(int32_t));
-    else
-        image_fill(dst, color);
+    if (!(dst->buffer = (int32_t*)malloc(w * h * sizeof(int32_t))))
+        return false;
+    simage_fill(dst, color);
     return true;
 }
 
-bool image_load_from_path(const char *path, generic_image *dst) {
+bool simage_load_from_path(const char *path, simage_buffer *dst) {
     bool result = false;
     unsigned char *data = NULL;
     if (access(path, F_OK))
@@ -8106,7 +8051,7 @@ bool image_load_from_path(const char *path, generic_image *dst) {
         goto BAIL;
     if (fread(data, sz, 1, fh) != 1)
         goto BAIL;
-    result = image_load_from_memory(data, (int)sz, dst);
+    result = simage_load_from_memory(data, (int)sz, dst);
 BAIL:
     if (fh)
         fclose(fh);
@@ -8115,16 +8060,11 @@ BAIL:
     return result;
 }
 
-#define _SHIFT(A, B, C, D) (((unsigned int)(A) << 24) | \
-                            ((unsigned int)(B) << 16) | \
-                            ((unsigned int)(C) << 8)  | \
-                            (D))
-
 static int check_if_qoi(unsigned char *data) {
-    return _SHIFT(data[0], data[0], data[0], data[0]) == _SHIFT('q', 'o', 'i', 'f');
+    return _RGBA(data[0], data[0], data[0], data[0]) ==  _RGBA('q', 'o', 'i', 'f');
 }
 
-bool image_load_from_memory(const void *data, size_t data_size, generic_image* dst) {
+bool simage_load_from_memory(const void *data, size_t data_size, simage_buffer *dst) {
     if (!data || data_size <= 0)
         return false;
     int _w, _h, c = 0;
@@ -8152,121 +8092,126 @@ bool image_load_from_memory(const void *data, size_t data_size, generic_image* d
     for (int x = 0; x < _w; x++)
         for (int y = 0; y < _h; y++) {
             unsigned char *p = img_data + (x + _w * y) * 4;
-            dst->buffer[y * _w + x] = RGBA(p[0], p[1], p[2], p[3]);
+            dst->buffer[y * _w + x] = _RGBA(p[0], p[1], p[2], p[3]);
         }
     free(img_data);
     return true;
 }
 
-bool image_save(generic_image *img, const char *path) {
-    // TODO: Integrate stb_image_write.h
-    return false;
-}
-
-void image_destroy(generic_image *img) {
-    if (img && img->buffer)
+void simage_destroy_buffer(simage_buffer *img) {
+    if (img && img->buffer) {
         free(img->buffer);
+        memset(img, 0, sizeof(simage_buffer));
+    }
 }
 
-void image_fill(generic_image *img, int32_t color) {
+void simage_pset(simage_buffer *img, int x, int y, sg_color color) {
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        img->buffer[y * img->width + x] = sg_color_to_int(color);
+}
+
+sg_color simage_pget(simage_buffer *img, int x, int y) {
+    int32_t color = 0;
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        color = img->buffer[y * img->width + x];
+    return int_to_sg_color(color);
+}
+
+void simage_fill(simage_buffer *img, sg_color color) {
     for (int i = 0; i < img->width * img->height; ++i)
-        img->buffer[i] = color;
+        img->buffer[i] = sg_color_to_int(color);
 }
 
-static inline void flood_fn(generic_image *img, int x, int y, int _new, int _old) {
-    if (_new == _old || image_pget(img, x, y) != _old)
-        return;
-
-    int x1 = x;
-    while (x1 < img->width && image_pget(img, x1, y) == _old) {
-        image_pset(img, x1, y, _new);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while (x1 >= 0 && image_pget(img, x1, y) == _old) {
-        image_pset(img, x1, y, _new);
-        x1--;
-    }
-
-    x1 = x;
-    while (x1 < img->width && image_pget(img, x1, y) == _old) {
-        if(y > 0 && image_pget(img, x1, y - 1) == _old)
-            flood_fn(img, x1, y - 1, _new, _old);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while(x1 >= 0 && image_pget(img, x1, y) == _old) {
-        if(y > 0 && image_pget(img, x1, y - 1) == _old)
-            flood_fn(img, x1, y - 1, _new, _old);
-        x1--;
-    }
-
-    x1 = x;
-    while(x1 < img->width && image_pget(img, x1, y) == _old) {
-        if(y < img->height - 1 && image_pget(img, x1, y + 1) == _old)
-            flood_fn(img, x1, y + 1, _new, _old);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while(x1 >= 0 && image_pget(img, x1, y) == _old) {
-        if(y < img->height - 1 && image_pget(img, x1, y + 1) == _old)
-            flood_fn(img, x1, y + 1, _new, _old);
-        x1--;
-    }
-}
-
-void image_flood(generic_image *img, int x, int y, int32_t color) {
-    if (x < 0 || y < 0 || x >= img->width || y >= img->height)
-        return;
-    flood_fn(img, x, y, color, image_pget(img, x, y));
-}
-
-void image_pset(generic_image *img, int x, int y, int32_t color) {
-    if (x >= 0 && y >= 0 && x < img->width && y < img->height)
+void _pset(simage_buffer *img, int x, int y, int32_t color) {
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
         img->buffer[y * img->width + x] = color;
 }
 
-int image_pget(generic_image *img, int x, int y) {
-    return (x >= 0 && y >= 0 && x < img->width && y < img->height) ? img->buffer[y * img->width + x] : 0;
+int32_t _pget(simage_buffer *img, int x, int y) {
+    int32_t color = 0;
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        color = img->buffer[y * img->width + x];
+    return color;
 }
 
-void image_paste(generic_image *dst, generic_image *src, int x, int y) {
+static inline void flood_fn(simage_buffer *img, int x, int y, int _new, int _old) {
+    if (_new == _old || _pget(img, x, y) != _old)
+        return;
+
+    int x1 = x;
+    while (x1 < img->width && _pget(img, x1, y) == _old) {
+        _pset(img, x1, y, _new);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while (x1 >= 0 && _pget(img, x1, y) == _old) {
+        _pset(img, x1, y, _new);
+        x1--;
+    }
+
+    x1 = x;
+    while (x1 < img->width && _pget(img, x1, y) == _old) {
+        if(y > 0 && _pget(img, x1, y - 1) == _old)
+            flood_fn(img, x1, y - 1, _new, _old);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while(x1 >= 0 && _pget(img, x1, y) == _old) {
+        if(y > 0 && _pget(img, x1, y - 1) == _old)
+            flood_fn(img, x1, y - 1, _new, _old);
+        x1--;
+    }
+
+    x1 = x;
+    while(x1 < img->width && _pget(img, x1, y) == _old) {
+        if(y < img->height - 1 && _pget(img, x1, y + 1) == _old)
+            flood_fn(img, x1, y + 1, _new, _old);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while(x1 >= 0 && _pget(img, x1, y) == _old) {
+        if(y < img->height - 1 && _pget(img, x1, y + 1) == _old)
+            flood_fn(img, x1, y + 1, _new, _old);
+        x1--;
+    }
+}
+
+void simage_flood(simage_buffer *img, int x, int y, sg_color color) {
+    if (x < 0 || y < 0 || x >= img->width || y >= img->height)
+        return;
+    flood_fn(img, x, y, sg_color_to_int(color), _pget(img, x, y));
+}
+
+void simage_paste(simage_buffer *dst, simage_buffer *src, int x, int y) {
     for (int ox = 0; ox < src->width; ++ox) {
         for (int oy = 0; oy < src->height; ++oy) {
             if (oy > dst->height)
                 break;
-            image_pset(dst, x + ox, y + oy, image_pget(src, ox, oy));
+            simage_pset(dst, x + ox, y + oy, simage_pget(src, ox, oy));
         }
         if (ox > dst->width)
             break;
     }
 }
 
-void image_clipped_paste(generic_image *dst, generic_image *src, int x, int y, int rx, int ry, int rw, int rh) {
+void simage_clipped_paste(simage_buffer *dst, simage_buffer *src, int x, int y, int rx, int ry, int rw, int rh) {
     for (int ox = 0; ox < rw; ++ox)
         for (int oy = 0; oy < rh; ++oy)
-            image_pset(dst, ox + x, oy + y, image_pget(src, ox + rx, oy + ry));
+            simage_pset(dst, ox + x, oy + y, simage_pget(src, ox + rx, oy + ry));
 }
 
-bool image_dupe(generic_image *src, generic_image *dst) {
-    if (!image_empty(src->width, src->height, 0, dst))
+bool simage_dupe(simage_buffer *src, simage_buffer *dst) {
+    if (!simage_empty(src->width, src->height, sg_black, dst))
         return false;
     memcpy(dst->buffer, src->buffer, src->width * src->height * sizeof(uint32_t));
     return true;
 }
 
-void image_pass_thru(generic_image *img, image_callback_t fn) {
-    int x, y;
-    for (x = 0; x < img->width; ++x)
-        for (y = 0; y < img->height; ++y)
-            img->buffer[y * img->width + x] = fn(x, y, image_pget(img, x, y));
-}
-
-bool image_resized(generic_image *src, int nw, int nh, generic_image *dst) {
-    if (!image_empty(nw, nh, 0, dst))
+bool simage_resized(simage_buffer *src, int nw, int nh, simage_buffer *dst) {
+    if (!simage_empty(nw, nh, sg_black, dst))
         return false;
     int x_ratio = (int)((src->width << 16) / dst->width) + 1;
     int y_ratio = (int)((src->height << 16) / dst->height) + 1;
@@ -8285,15 +8230,15 @@ bool image_resized(generic_image *src, int nw, int nh, generic_image *dst) {
     return true;
 }
 
-void image_resize(generic_image *src, int nw, int nh) {
-    generic_image result;
-    if (!image_resized(src, nw, nh, &result))
+void simage_resize(simage_buffer *src, int nw, int nh) {
+    simage_buffer result;
+    if (!simage_resized(src, nw, nh, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-bool image_rotated(generic_image *src, float angle, generic_image *dst) {
+bool simage_rotated(simage_buffer *src, float angle, simage_buffer *dst) {
     float theta = _RADIANS(angle);
     float c = cosf(theta), s = sinf(theta);
     float r[3][2] = {
@@ -8312,7 +8257,7 @@ bool image_rotated(generic_image *src, float angle, generic_image *dst) {
 
     int dw = (int)ceil(fabsf(mm[1][0]) - mm[0][0]);
     int dh = (int)ceil(fabsf(mm[1][1]) - mm[0][1]);
-    if (!image_empty(dw, dh, 0, dst))
+    if (!simage_empty(dw, dh, sg_black, dst))
         return false;
     int x, y, sx, sy;
     for (x = 0; x < dw; ++x)
@@ -8321,20 +8266,20 @@ bool image_rotated(generic_image *src, float angle, generic_image *dst) {
             sy = ((y + mm[0][1]) * c - (x + mm[0][0]) * s);
             if (sx < 0 || sx >= src->width || sy < 0 || sy >= src->height)
                 continue;
-            image_pset(dst, x, y, image_pget(src, sx, sy));
+            simage_pset(dst, x, y, simage_pget(src, sx, sy));
         }
     return true;
 }
 
-void image_rotate(generic_image *src, float angle) {
-    generic_image result;
-    if (!image_rotated(src, angle, &result))
+void simage_rotate(simage_buffer *src, float angle) {
+    simage_buffer result;
+    if (!simage_rotated(src, angle, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-bool image_clipped(generic_image *src, int rx, int ry, int rw, int rh, generic_image *dst) {
+bool simage_clipped(simage_buffer *src, int rx, int ry, int rw, int rh, simage_buffer *dst) {
     int ox = _CLAMP(rx, 0, src->width);
     int oy = _CLAMP(ry, 0, src->height);
     if (ox >= src->width || oy >= src->height)
@@ -8345,26 +8290,26 @@ bool image_clipped(generic_image *src, int rx, int ry, int rw, int rh, generic_i
     int ih = my - oy;
     if (iw <= 0 || ih <= 0)
         return false;
-    if (!image_empty(iw, ih, 0, dst))
+    if (!simage_empty(iw, ih, sg_black, dst))
         return false;
     for (int px = 0; px < iw; px++)
         for (int py = 0; py < ih; py++) {
             int cx = ox + px;
             int cy = oy + py;
-            image_pset(dst, px, py, image_pget(src, cx, cy));
+            simage_pset(dst, px, py, simage_pget(src, cx, cy));
         }
     return true;
 }
 
-void image_clip(generic_image *src, int rx, int ry, int rw, int rh) {
-    generic_image result;
-    if (!image_clipped(src, rx, ry, rw, rh, &result))
+void simage_clip(simage_buffer *src, int rx, int ry, int rw, int rh) {
+    simage_buffer result;
+    if (!simage_clipped(src, rx, ry, rw, rh, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-static inline void vline(generic_image *img, int x, int y0, int y1, int32_t color) {
+static inline void vline(simage_buffer *img, int x, int y0, int y1, sg_color color) {
     if (y1 < y0) {
         y0 += y1;
         y1  = y0 - y1;
@@ -8380,10 +8325,10 @@ static inline void vline(generic_image *img, int x, int y0, int y1, int32_t colo
         y1 = img->height - 1;
 
     for(int y = y0; y <= y1; y++)
-        image_pset(img, x, y, color);
+        simage_pset(img, x, y, color);
 }
 
-static inline void hline(generic_image *img, int y, int x0, int x1, int32_t color) {
+static inline void hline(simage_buffer *img, int y, int x0, int x1, sg_color color) {
     if (x1 < x0) {
         x0 += x1;
         x1  = x0 - x1;
@@ -8399,10 +8344,10 @@ static inline void hline(generic_image *img, int y, int x0, int x1, int32_t colo
         x1 = img->width - 1;
 
     for(int x = x0; x <= x1; x++)
-        image_pset(img, x, y, color);
+        simage_pset(img, x, y, color);
 }
 
-void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t color) {
+void simage_draw_line(simage_buffer *img, int x0, int y0, int x1, int y1, sg_color color) {
     if (x0 == x1)
         vline(img, x0, y0, y1, color);
     else if (y0 == y1)
@@ -8412,7 +8357,7 @@ void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t
         int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
         int err = (dx > dy ? dx : -dy) / 2;
 
-        while (image_pset(img, x0, y0, color), x0 != x1 || y0 != y1) {
+        while (simage_pset(img, x0, y0, color), x0 != x1 || y0 != y1) {
             int e2 = err;
             if (e2 > -dx) { err -= dy; x0 += sx; }
             if (e2 <  dy) { err += dx; y0 += sy; }
@@ -8420,13 +8365,13 @@ void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t
     }
 }
 
-void image_draw_circle(generic_image *img, int xc, int yc, int r, int32_t color, int fill) {
+void simage_draw_circle(simage_buffer *img, int xc, int yc, int r, sg_color color, int fill) {
     int x = -r, y = 0, err = 2 - 2 * r; /* II. Quadrant */
     do {
-        image_pset(img, xc - x, yc + y, color);    /*   I. Quadrant */
-        image_pset(img, xc - y, yc - x, color);    /*  II. Quadrant */
-        image_pset(img, xc + x, yc - y, color);    /* III. Quadrant */
-        image_pset(img, xc + y, yc + x, color);    /*  IV. Quadrant */
+        simage_pset(img, xc - x, yc + y, color);    /*   I. Quadrant */
+        simage_pset(img, xc - y, yc - x, color);    /*  II. Quadrant */
+        simage_pset(img, xc + x, yc - y, color);    /* III. Quadrant */
+        simage_pset(img, xc + y, yc + x, color);    /*  IV. Quadrant */
 
         if (fill) {
             hline(img, yc - y, xc - x, xc + x, color);
@@ -8441,7 +8386,7 @@ void image_draw_circle(generic_image *img, int xc, int yc, int r, int32_t color,
     } while (x < 0);
 }
 
-void image_draw_rectangle(generic_image *img, int x, int y, int w, int h, int32_t color, int fill) {
+void simage_draw_rectangle(simage_buffer *img, int x, int y, int w, int h, sg_color color, int fill) {
     if (x < 0) {
         w += x;
         x  = 0;
@@ -8472,7 +8417,7 @@ void image_draw_rectangle(generic_image *img, int x, int y, int w, int h, int32_
     }
 }
 
-void image_draw_triangle(generic_image *img, int x0, int y0, int x1, int y1, int x2, int y2, int32_t color, int fill) {
+void simage_draw_triangle(simage_buffer *img, int x0, int y0, int x1, int y1, int x2, int y2, sg_color color, int fill) {
     if (y0 ==  y1 && y0 ==  y2)
         return;
     if (fill) {
@@ -8504,16 +8449,66 @@ void image_draw_triangle(generic_image *img, int x0, int y0, int x1, int y1, int
                 _SWAP(ay, by);
             }
             for (j = ax; j <= bx; ++j)
-                image_pset(img, j, y0 + i, color);
+                simage_pset(img, j, y0 + i, color);
         }
     } else {
-        image_draw_line(img, x0, y0, x1, y1, color);
-        image_draw_line(img, x1, y1, x2, y2, color);
-        image_draw_line(img, x2, y2, x0, y0, color);
+        simage_draw_line(img, x0, y0, x1, y1, color);
+        simage_draw_line(img, x1, y1, x2, y2, color);
+        simage_draw_line(img, x2, y2, x0, y0, color);
     }
 }
 
-#endif // GENERIC_IMPL#define STB_IMAGE_WRITE_IMPLEMENTATION
+sg_image sg_empty_texture(unsigned int width, unsigned int height) {
+    if (width <= 0 || height <= 0)
+        return (sg_image){.id=SG_INVALID_ID};
+    sg_image_desc desc = {
+        .width = width,
+        .height = height,
+        .pixel_format = SG_PIXELFORMAT_RGBA8,
+        .usage.stream_update = true
+    };
+    return sg_make_image(&desc);
+}
+
+static sg_image image_to_sg(simage_buffer *img) {
+    sg_image texture = sg_empty_texture(img->width, img->height);
+    sg_update_texture_from_buffer(texture, img);
+    return texture;
+}
+
+sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height) {
+    simage_buffer tmp;
+    if (!simage_load_from_path(path, &tmp))
+        return (sg_image){.id=SG_INVALID_ID};
+    if (width)
+        *width = tmp.width;
+    if (height)
+        *height = tmp.height;
+    return image_to_sg(&tmp);
+}
+
+sg_image sg_load_texture_from_memory(unsigned char *data, size_t data_size, unsigned int *width, unsigned int *height) {
+    simage_buffer tmp;
+    if (!simage_load_from_memory(data, data_size, &tmp))
+        return (sg_image){.id=SG_INVALID_ID};
+    if (width)
+        *width = tmp.width;
+    if (height)
+        *height = tmp.height;
+    return image_to_sg(&tmp);
+}
+
+void sg_update_texture_from_buffer(sg_image texture, simage_buffer *img) {
+    if (texture.id == SG_INVALID_ID)
+        return;
+    sg_update_image(texture, &(sg_image_data) {
+        .subimage[0][0] = (sg_range) {
+            .ptr = img->buffer,
+            .size = img->width * img->height * sizeof(int)
+        }
+    });
+}
+#endif#define STB_IMAGE_WRITE_IMPLEMENTATION
 /* stb_image_write - v1.16 - public domain - http://nothings.org/stb
    writes out PNG/BMP/TGA/JPEG/HDR images to C stdio - Sean Barrett 2010-2015
                                      no warranty implied; use at your own risk
@@ -10239,108 +10234,35 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
 
-#ifdef _WIN32
-#include <io.h>
-#include <dirent.h>
-#define F_OK 0
-#define access _access
-#else
-#include <unistd.h>
-#endif
+#define _RGBA(R, G, B, A) (((unsigned int)(R) << 24) | ((unsigned int)(B) << 16) | ((unsigned int)(G) << 8) | (A))
+#define _F2I(F) (int)((F) * 255.f)
+#define _I2F(I) (float)((float)(I) / 255.f)
 
-#define _SWAP(a, b)   \
-    do                \
-    {                 \
-        int temp = a; \
-        a = b;        \
-        b = temp;     \
-    } while (0)
-#define _MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define _MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define _CLAMP(v, low, high)  ((v) < (low) ? (low) : ((v) > (high) ? (high) : (v)))
-#define _RADIANS(a) ((a) * M_PI / 180.0)
-
-int32_t RGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    return ((uint8_t)r << 24) | ((uint8_t)g << 16) | ((uint8_t)b << 8) | a;
+static uint32_t sg_color_to_int(sg_color color) {
+    return _RGBA(_F2I(color.r), _F2I(color.g), _F2I(color.b), _F2I(color.a));
 }
 
-int32_t RGB(uint8_t r, uint8_t g, uint8_t b) {
-    return RGBA(r, g, b, 255);
+static sg_color int_to_sg_color(int32_t color) {
+    return (sg_color) {
+        .r = _I2F((color >> 24) & 0xFF),
+        .g = _I2F((color >> 16) & 0xFF),
+        .b = _I2F((color >> 8) & 0xFF),
+        .a = _I2F(color & 0xFF)
+    };
 }
 
-int32_t RGBA1(uint8_t c, uint8_t a) {
-    return RGBA(c, c, c, a);
-}
-
-int32_t RGB1(uint8_t c) {
-    return RGB(c, c, c);
-}
-
-#define _F2I(X) (uint8_t)((float)(X) * 255.f)
-
-int32_t RGBAf(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    return RGBA(_F2I(r), _F2I(g), _F2I(b), _F2I(a));
-}
-
-int32_t RGBf(uint8_t r, uint8_t g, uint8_t b) {
-    return RGBAf(r, g, b, 1.f);
-}
-
-int32_t RGBA1f(uint8_t c, uint8_t a) {
-    return RGBAf(c, c, c, a);
-}
-
-int32_t RGB1f(uint8_t c) {
-    return RGBf(c, c, c);
-}
-
-uint8_t Rgba(int32_t c) {
-    return (uint8_t)((c >> 24) & 0xFF);
-}
-
-uint8_t rGba(int32_t c) {
-    return (uint8_t)((c >>  16) & 0xFF);
-}
-
-uint8_t rgBa(int32_t c) {
-    return (uint8_t)((c >> 8) & 0xFF);
-}
-
-uint8_t rgbA(int32_t c) {
-    return (uint8_t)(c & 0xFF);
-}
-
-int32_t rGBA(int32_t c, uint8_t r) {
-    return (c & ~0x00FF0000) | (r << 24);
-}
-
-int32_t RgBA(int32_t c, uint8_t g) {
-    return (c & ~0x0000FF00) | (g << 16);
-}
-
-int32_t RGbA(int32_t c, uint8_t b) {
-    return (c & ~0x000000FF) | (b << 8);
-}
-
-int32_t RGBa(int32_t c, uint8_t a) {
-    return (c & ~0x00FF0000) | a;
-}
-
-bool image_empty(int w, int h, int32_t color, generic_image* dst) {
+bool simage_empty(unsigned int w, unsigned int h, sg_color color, simage_buffer *dst) {
     if (w <= 0 || h <= 0)
-        return false;
-    if (!(dst->buffer = (int32_t*)malloc(w * h * sizeof(int32_t))))
         return false;
     dst->width = w;
     dst->height = h;
-    if (!color)
-        memset(dst->buffer, 0, w * h * sizeof(int32_t));
-    else
-        image_fill(dst, color);
+    if (!(dst->buffer = (int32_t*)malloc(w * h * sizeof(int32_t))))
+        return false;
+    simage_fill(dst, color);
     return true;
 }
 
-bool image_load_from_path(const char *path, generic_image *dst) {
+bool simage_load_from_path(const char *path, simage_buffer *dst) {
     bool result = false;
     unsigned char *data = NULL;
     if (access(path, F_OK))
@@ -10357,7 +10279,7 @@ bool image_load_from_path(const char *path, generic_image *dst) {
         goto BAIL;
     if (fread(data, sz, 1, fh) != 1)
         goto BAIL;
-    result = image_load_from_memory(data, (int)sz, dst);
+    result = simage_load_from_memory(data, (int)sz, dst);
 BAIL:
     if (fh)
         fclose(fh);
@@ -10366,16 +10288,11 @@ BAIL:
     return result;
 }
 
-#define _SHIFT(A, B, C, D) (((unsigned int)(A) << 24) | \
-                            ((unsigned int)(B) << 16) | \
-                            ((unsigned int)(C) << 8)  | \
-                            (D))
-
 static int check_if_qoi(unsigned char *data) {
-    return _SHIFT(data[0], data[0], data[0], data[0]) == _SHIFT('q', 'o', 'i', 'f');
+    return _RGBA(data[0], data[0], data[0], data[0]) ==  _RGBA('q', 'o', 'i', 'f');
 }
 
-bool image_load_from_memory(const void *data, size_t data_size, generic_image* dst) {
+bool simage_load_from_memory(const void *data, size_t data_size, simage_buffer *dst) {
     if (!data || data_size <= 0)
         return false;
     int _w, _h, c = 0;
@@ -10403,121 +10320,126 @@ bool image_load_from_memory(const void *data, size_t data_size, generic_image* d
     for (int x = 0; x < _w; x++)
         for (int y = 0; y < _h; y++) {
             unsigned char *p = img_data + (x + _w * y) * 4;
-            dst->buffer[y * _w + x] = RGBA(p[0], p[1], p[2], p[3]);
+            dst->buffer[y * _w + x] = _RGBA(p[0], p[1], p[2], p[3]);
         }
     free(img_data);
     return true;
 }
 
-bool image_save(generic_image *img, const char *path) {
-    // TODO: Integrate stb_image_write.h
-    return false;
-}
-
-void image_destroy(generic_image *img) {
-    if (img && img->buffer)
+void simage_destroy_buffer(simage_buffer *img) {
+    if (img && img->buffer) {
         free(img->buffer);
+        memset(img, 0, sizeof(simage_buffer));
+    }
 }
 
-void image_fill(generic_image *img, int32_t color) {
+void simage_pset(simage_buffer *img, int x, int y, sg_color color) {
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        img->buffer[y * img->width + x] = sg_color_to_int(color);
+}
+
+sg_color simage_pget(simage_buffer *img, int x, int y) {
+    int32_t color = 0;
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        color = img->buffer[y * img->width + x];
+    return int_to_sg_color(color);
+}
+
+void simage_fill(simage_buffer *img, sg_color color) {
     for (int i = 0; i < img->width * img->height; ++i)
-        img->buffer[i] = color;
+        img->buffer[i] = sg_color_to_int(color);
 }
 
-static inline void flood_fn(generic_image *img, int x, int y, int _new, int _old) {
-    if (_new == _old || image_pget(img, x, y) != _old)
-        return;
-
-    int x1 = x;
-    while (x1 < img->width && image_pget(img, x1, y) == _old) {
-        image_pset(img, x1, y, _new);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while (x1 >= 0 && image_pget(img, x1, y) == _old) {
-        image_pset(img, x1, y, _new);
-        x1--;
-    }
-
-    x1 = x;
-    while (x1 < img->width && image_pget(img, x1, y) == _old) {
-        if(y > 0 && image_pget(img, x1, y - 1) == _old)
-            flood_fn(img, x1, y - 1, _new, _old);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while(x1 >= 0 && image_pget(img, x1, y) == _old) {
-        if(y > 0 && image_pget(img, x1, y - 1) == _old)
-            flood_fn(img, x1, y - 1, _new, _old);
-        x1--;
-    }
-
-    x1 = x;
-    while(x1 < img->width && image_pget(img, x1, y) == _old) {
-        if(y < img->height - 1 && image_pget(img, x1, y + 1) == _old)
-            flood_fn(img, x1, y + 1, _new, _old);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while(x1 >= 0 && image_pget(img, x1, y) == _old) {
-        if(y < img->height - 1 && image_pget(img, x1, y + 1) == _old)
-            flood_fn(img, x1, y + 1, _new, _old);
-        x1--;
-    }
-}
-
-void image_flood(generic_image *img, int x, int y, int32_t color) {
-    if (x < 0 || y < 0 || x >= img->width || y >= img->height)
-        return;
-    flood_fn(img, x, y, color, image_pget(img, x, y));
-}
-
-void image_pset(generic_image *img, int x, int y, int32_t color) {
-    if (x >= 0 && y >= 0 && x < img->width && y < img->height)
+void _pset(simage_buffer *img, int x, int y, int32_t color) {
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
         img->buffer[y * img->width + x] = color;
 }
 
-int image_pget(generic_image *img, int x, int y) {
-    return (x >= 0 && y >= 0 && x < img->width && y < img->height) ? img->buffer[y * img->width + x] : 0;
+int32_t _pget(simage_buffer *img, int x, int y) {
+    int32_t color = 0;
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        color = img->buffer[y * img->width + x];
+    return color;
 }
 
-void image_paste(generic_image *dst, generic_image *src, int x, int y) {
+static inline void flood_fn(simage_buffer *img, int x, int y, int _new, int _old) {
+    if (_new == _old || _pget(img, x, y) != _old)
+        return;
+
+    int x1 = x;
+    while (x1 < img->width && _pget(img, x1, y) == _old) {
+        _pset(img, x1, y, _new);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while (x1 >= 0 && _pget(img, x1, y) == _old) {
+        _pset(img, x1, y, _new);
+        x1--;
+    }
+
+    x1 = x;
+    while (x1 < img->width && _pget(img, x1, y) == _old) {
+        if(y > 0 && _pget(img, x1, y - 1) == _old)
+            flood_fn(img, x1, y - 1, _new, _old);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while(x1 >= 0 && _pget(img, x1, y) == _old) {
+        if(y > 0 && _pget(img, x1, y - 1) == _old)
+            flood_fn(img, x1, y - 1, _new, _old);
+        x1--;
+    }
+
+    x1 = x;
+    while(x1 < img->width && _pget(img, x1, y) == _old) {
+        if(y < img->height - 1 && _pget(img, x1, y + 1) == _old)
+            flood_fn(img, x1, y + 1, _new, _old);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while(x1 >= 0 && _pget(img, x1, y) == _old) {
+        if(y < img->height - 1 && _pget(img, x1, y + 1) == _old)
+            flood_fn(img, x1, y + 1, _new, _old);
+        x1--;
+    }
+}
+
+void simage_flood(simage_buffer *img, int x, int y, sg_color color) {
+    if (x < 0 || y < 0 || x >= img->width || y >= img->height)
+        return;
+    flood_fn(img, x, y, sg_color_to_int(color), _pget(img, x, y));
+}
+
+void simage_paste(simage_buffer *dst, simage_buffer *src, int x, int y) {
     for (int ox = 0; ox < src->width; ++ox) {
         for (int oy = 0; oy < src->height; ++oy) {
             if (oy > dst->height)
                 break;
-            image_pset(dst, x + ox, y + oy, image_pget(src, ox, oy));
+            simage_pset(dst, x + ox, y + oy, simage_pget(src, ox, oy));
         }
         if (ox > dst->width)
             break;
     }
 }
 
-void image_clipped_paste(generic_image *dst, generic_image *src, int x, int y, int rx, int ry, int rw, int rh) {
+void simage_clipped_paste(simage_buffer *dst, simage_buffer *src, int x, int y, int rx, int ry, int rw, int rh) {
     for (int ox = 0; ox < rw; ++ox)
         for (int oy = 0; oy < rh; ++oy)
-            image_pset(dst, ox + x, oy + y, image_pget(src, ox + rx, oy + ry));
+            simage_pset(dst, ox + x, oy + y, simage_pget(src, ox + rx, oy + ry));
 }
 
-bool image_dupe(generic_image *src, generic_image *dst) {
-    if (!image_empty(src->width, src->height, 0, dst))
+bool simage_dupe(simage_buffer *src, simage_buffer *dst) {
+    if (!simage_empty(src->width, src->height, sg_black, dst))
         return false;
     memcpy(dst->buffer, src->buffer, src->width * src->height * sizeof(uint32_t));
     return true;
 }
 
-void image_pass_thru(generic_image *img, image_callback_t fn) {
-    int x, y;
-    for (x = 0; x < img->width; ++x)
-        for (y = 0; y < img->height; ++y)
-            img->buffer[y * img->width + x] = fn(x, y, image_pget(img, x, y));
-}
-
-bool image_resized(generic_image *src, int nw, int nh, generic_image *dst) {
-    if (!image_empty(nw, nh, 0, dst))
+bool simage_resized(simage_buffer *src, int nw, int nh, simage_buffer *dst) {
+    if (!simage_empty(nw, nh, sg_black, dst))
         return false;
     int x_ratio = (int)((src->width << 16) / dst->width) + 1;
     int y_ratio = (int)((src->height << 16) / dst->height) + 1;
@@ -10536,15 +10458,15 @@ bool image_resized(generic_image *src, int nw, int nh, generic_image *dst) {
     return true;
 }
 
-void image_resize(generic_image *src, int nw, int nh) {
-    generic_image result;
-    if (!image_resized(src, nw, nh, &result))
+void simage_resize(simage_buffer *src, int nw, int nh) {
+    simage_buffer result;
+    if (!simage_resized(src, nw, nh, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-bool image_rotated(generic_image *src, float angle, generic_image *dst) {
+bool simage_rotated(simage_buffer *src, float angle, simage_buffer *dst) {
     float theta = _RADIANS(angle);
     float c = cosf(theta), s = sinf(theta);
     float r[3][2] = {
@@ -10563,7 +10485,7 @@ bool image_rotated(generic_image *src, float angle, generic_image *dst) {
 
     int dw = (int)ceil(fabsf(mm[1][0]) - mm[0][0]);
     int dh = (int)ceil(fabsf(mm[1][1]) - mm[0][1]);
-    if (!image_empty(dw, dh, 0, dst))
+    if (!simage_empty(dw, dh, sg_black, dst))
         return false;
     int x, y, sx, sy;
     for (x = 0; x < dw; ++x)
@@ -10572,20 +10494,20 @@ bool image_rotated(generic_image *src, float angle, generic_image *dst) {
             sy = ((y + mm[0][1]) * c - (x + mm[0][0]) * s);
             if (sx < 0 || sx >= src->width || sy < 0 || sy >= src->height)
                 continue;
-            image_pset(dst, x, y, image_pget(src, sx, sy));
+            simage_pset(dst, x, y, simage_pget(src, sx, sy));
         }
     return true;
 }
 
-void image_rotate(generic_image *src, float angle) {
-    generic_image result;
-    if (!image_rotated(src, angle, &result))
+void simage_rotate(simage_buffer *src, float angle) {
+    simage_buffer result;
+    if (!simage_rotated(src, angle, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-bool image_clipped(generic_image *src, int rx, int ry, int rw, int rh, generic_image *dst) {
+bool simage_clipped(simage_buffer *src, int rx, int ry, int rw, int rh, simage_buffer *dst) {
     int ox = _CLAMP(rx, 0, src->width);
     int oy = _CLAMP(ry, 0, src->height);
     if (ox >= src->width || oy >= src->height)
@@ -10596,26 +10518,26 @@ bool image_clipped(generic_image *src, int rx, int ry, int rw, int rh, generic_i
     int ih = my - oy;
     if (iw <= 0 || ih <= 0)
         return false;
-    if (!image_empty(iw, ih, 0, dst))
+    if (!simage_empty(iw, ih, sg_black, dst))
         return false;
     for (int px = 0; px < iw; px++)
         for (int py = 0; py < ih; py++) {
             int cx = ox + px;
             int cy = oy + py;
-            image_pset(dst, px, py, image_pget(src, cx, cy));
+            simage_pset(dst, px, py, simage_pget(src, cx, cy));
         }
     return true;
 }
 
-void image_clip(generic_image *src, int rx, int ry, int rw, int rh) {
-    generic_image result;
-    if (!image_clipped(src, rx, ry, rw, rh, &result))
+void simage_clip(simage_buffer *src, int rx, int ry, int rw, int rh) {
+    simage_buffer result;
+    if (!simage_clipped(src, rx, ry, rw, rh, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-static inline void vline(generic_image *img, int x, int y0, int y1, int32_t color) {
+static inline void vline(simage_buffer *img, int x, int y0, int y1, sg_color color) {
     if (y1 < y0) {
         y0 += y1;
         y1  = y0 - y1;
@@ -10631,10 +10553,10 @@ static inline void vline(generic_image *img, int x, int y0, int y1, int32_t colo
         y1 = img->height - 1;
 
     for(int y = y0; y <= y1; y++)
-        image_pset(img, x, y, color);
+        simage_pset(img, x, y, color);
 }
 
-static inline void hline(generic_image *img, int y, int x0, int x1, int32_t color) {
+static inline void hline(simage_buffer *img, int y, int x0, int x1, sg_color color) {
     if (x1 < x0) {
         x0 += x1;
         x1  = x0 - x1;
@@ -10650,10 +10572,10 @@ static inline void hline(generic_image *img, int y, int x0, int x1, int32_t colo
         x1 = img->width - 1;
 
     for(int x = x0; x <= x1; x++)
-        image_pset(img, x, y, color);
+        simage_pset(img, x, y, color);
 }
 
-void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t color) {
+void simage_draw_line(simage_buffer *img, int x0, int y0, int x1, int y1, sg_color color) {
     if (x0 == x1)
         vline(img, x0, y0, y1, color);
     else if (y0 == y1)
@@ -10663,7 +10585,7 @@ void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t
         int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
         int err = (dx > dy ? dx : -dy) / 2;
 
-        while (image_pset(img, x0, y0, color), x0 != x1 || y0 != y1) {
+        while (simage_pset(img, x0, y0, color), x0 != x1 || y0 != y1) {
             int e2 = err;
             if (e2 > -dx) { err -= dy; x0 += sx; }
             if (e2 <  dy) { err += dx; y0 += sy; }
@@ -10671,13 +10593,13 @@ void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t
     }
 }
 
-void image_draw_circle(generic_image *img, int xc, int yc, int r, int32_t color, int fill) {
+void simage_draw_circle(simage_buffer *img, int xc, int yc, int r, sg_color color, int fill) {
     int x = -r, y = 0, err = 2 - 2 * r; /* II. Quadrant */
     do {
-        image_pset(img, xc - x, yc + y, color);    /*   I. Quadrant */
-        image_pset(img, xc - y, yc - x, color);    /*  II. Quadrant */
-        image_pset(img, xc + x, yc - y, color);    /* III. Quadrant */
-        image_pset(img, xc + y, yc + x, color);    /*  IV. Quadrant */
+        simage_pset(img, xc - x, yc + y, color);    /*   I. Quadrant */
+        simage_pset(img, xc - y, yc - x, color);    /*  II. Quadrant */
+        simage_pset(img, xc + x, yc - y, color);    /* III. Quadrant */
+        simage_pset(img, xc + y, yc + x, color);    /*  IV. Quadrant */
 
         if (fill) {
             hline(img, yc - y, xc - x, xc + x, color);
@@ -10692,7 +10614,7 @@ void image_draw_circle(generic_image *img, int xc, int yc, int r, int32_t color,
     } while (x < 0);
 }
 
-void image_draw_rectangle(generic_image *img, int x, int y, int w, int h, int32_t color, int fill) {
+void simage_draw_rectangle(simage_buffer *img, int x, int y, int w, int h, sg_color color, int fill) {
     if (x < 0) {
         w += x;
         x  = 0;
@@ -10723,7 +10645,7 @@ void image_draw_rectangle(generic_image *img, int x, int y, int w, int h, int32_
     }
 }
 
-void image_draw_triangle(generic_image *img, int x0, int y0, int x1, int y1, int x2, int y2, int32_t color, int fill) {
+void simage_draw_triangle(simage_buffer *img, int x0, int y0, int x1, int y1, int x2, int y2, sg_color color, int fill) {
     if (y0 ==  y1 && y0 ==  y2)
         return;
     if (fill) {
@@ -10755,16 +10677,66 @@ void image_draw_triangle(generic_image *img, int x0, int y0, int x1, int y1, int
                 _SWAP(ay, by);
             }
             for (j = ax; j <= bx; ++j)
-                image_pset(img, j, y0 + i, color);
+                simage_pset(img, j, y0 + i, color);
         }
     } else {
-        image_draw_line(img, x0, y0, x1, y1, color);
-        image_draw_line(img, x1, y1, x2, y2, color);
-        image_draw_line(img, x2, y2, x0, y0, color);
+        simage_draw_line(img, x0, y0, x1, y1, color);
+        simage_draw_line(img, x1, y1, x2, y2, color);
+        simage_draw_line(img, x2, y2, x0, y0, color);
     }
 }
 
-#endif // GENERIC_IMPL#define QOI_IMPLEMENTATION
+sg_image sg_empty_texture(unsigned int width, unsigned int height) {
+    if (width <= 0 || height <= 0)
+        return (sg_image){.id=SG_INVALID_ID};
+    sg_image_desc desc = {
+        .width = width,
+        .height = height,
+        .pixel_format = SG_PIXELFORMAT_RGBA8,
+        .usage.stream_update = true
+    };
+    return sg_make_image(&desc);
+}
+
+static sg_image image_to_sg(simage_buffer *img) {
+    sg_image texture = sg_empty_texture(img->width, img->height);
+    sg_update_texture_from_buffer(texture, img);
+    return texture;
+}
+
+sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height) {
+    simage_buffer tmp;
+    if (!simage_load_from_path(path, &tmp))
+        return (sg_image){.id=SG_INVALID_ID};
+    if (width)
+        *width = tmp.width;
+    if (height)
+        *height = tmp.height;
+    return image_to_sg(&tmp);
+}
+
+sg_image sg_load_texture_from_memory(unsigned char *data, size_t data_size, unsigned int *width, unsigned int *height) {
+    simage_buffer tmp;
+    if (!simage_load_from_memory(data, data_size, &tmp))
+        return (sg_image){.id=SG_INVALID_ID};
+    if (width)
+        *width = tmp.width;
+    if (height)
+        *height = tmp.height;
+    return image_to_sg(&tmp);
+}
+
+void sg_update_texture_from_buffer(sg_image texture, simage_buffer *img) {
+    if (texture.id == SG_INVALID_ID)
+        return;
+    sg_update_image(texture, &(sg_image_data) {
+        .subimage[0][0] = (sg_range) {
+            .ptr = img->buffer,
+            .size = img->width * img->height * sizeof(int)
+        }
+    });
+}
+#endif#define QOI_IMPLEMENTATION
 /*
 
 Copyright (c) 2021, Dominic Szablewski - https://phoboslab.org
@@ -11415,108 +11387,35 @@ void *qoi_read(const char *filename, qoi_desc *desc, int channels) {
 #endif /* QOI_NO_STDIO */
 #endif /* QOI_IMPLEMENTATION */
 
-#ifdef _WIN32
-#include <io.h>
-#include <dirent.h>
-#define F_OK 0
-#define access _access
-#else
-#include <unistd.h>
-#endif
+#define _RGBA(R, G, B, A) (((unsigned int)(R) << 24) | ((unsigned int)(B) << 16) | ((unsigned int)(G) << 8) | (A))
+#define _F2I(F) (int)((F) * 255.f)
+#define _I2F(I) (float)((float)(I) / 255.f)
 
-#define _SWAP(a, b)   \
-    do                \
-    {                 \
-        int temp = a; \
-        a = b;        \
-        b = temp;     \
-    } while (0)
-#define _MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define _MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define _CLAMP(v, low, high)  ((v) < (low) ? (low) : ((v) > (high) ? (high) : (v)))
-#define _RADIANS(a) ((a) * M_PI / 180.0)
-
-int32_t RGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    return ((uint8_t)r << 24) | ((uint8_t)g << 16) | ((uint8_t)b << 8) | a;
+static uint32_t sg_color_to_int(sg_color color) {
+    return _RGBA(_F2I(color.r), _F2I(color.g), _F2I(color.b), _F2I(color.a));
 }
 
-int32_t RGB(uint8_t r, uint8_t g, uint8_t b) {
-    return RGBA(r, g, b, 255);
+static sg_color int_to_sg_color(int32_t color) {
+    return (sg_color) {
+        .r = _I2F((color >> 24) & 0xFF),
+        .g = _I2F((color >> 16) & 0xFF),
+        .b = _I2F((color >> 8) & 0xFF),
+        .a = _I2F(color & 0xFF)
+    };
 }
 
-int32_t RGBA1(uint8_t c, uint8_t a) {
-    return RGBA(c, c, c, a);
-}
-
-int32_t RGB1(uint8_t c) {
-    return RGB(c, c, c);
-}
-
-#define _F2I(X) (uint8_t)((float)(X) * 255.f)
-
-int32_t RGBAf(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    return RGBA(_F2I(r), _F2I(g), _F2I(b), _F2I(a));
-}
-
-int32_t RGBf(uint8_t r, uint8_t g, uint8_t b) {
-    return RGBAf(r, g, b, 1.f);
-}
-
-int32_t RGBA1f(uint8_t c, uint8_t a) {
-    return RGBAf(c, c, c, a);
-}
-
-int32_t RGB1f(uint8_t c) {
-    return RGBf(c, c, c);
-}
-
-uint8_t Rgba(int32_t c) {
-    return (uint8_t)((c >> 24) & 0xFF);
-}
-
-uint8_t rGba(int32_t c) {
-    return (uint8_t)((c >>  16) & 0xFF);
-}
-
-uint8_t rgBa(int32_t c) {
-    return (uint8_t)((c >> 8) & 0xFF);
-}
-
-uint8_t rgbA(int32_t c) {
-    return (uint8_t)(c & 0xFF);
-}
-
-int32_t rGBA(int32_t c, uint8_t r) {
-    return (c & ~0x00FF0000) | (r << 24);
-}
-
-int32_t RgBA(int32_t c, uint8_t g) {
-    return (c & ~0x0000FF00) | (g << 16);
-}
-
-int32_t RGbA(int32_t c, uint8_t b) {
-    return (c & ~0x000000FF) | (b << 8);
-}
-
-int32_t RGBa(int32_t c, uint8_t a) {
-    return (c & ~0x00FF0000) | a;
-}
-
-bool image_empty(int w, int h, int32_t color, generic_image* dst) {
+bool simage_empty(unsigned int w, unsigned int h, sg_color color, simage_buffer *dst) {
     if (w <= 0 || h <= 0)
-        return false;
-    if (!(dst->buffer = (int32_t*)malloc(w * h * sizeof(int32_t))))
         return false;
     dst->width = w;
     dst->height = h;
-    if (!color)
-        memset(dst->buffer, 0, w * h * sizeof(int32_t));
-    else
-        image_fill(dst, color);
+    if (!(dst->buffer = (int32_t*)malloc(w * h * sizeof(int32_t))))
+        return false;
+    simage_fill(dst, color);
     return true;
 }
 
-bool image_load_from_path(const char *path, generic_image *dst) {
+bool simage_load_from_path(const char *path, simage_buffer *dst) {
     bool result = false;
     unsigned char *data = NULL;
     if (access(path, F_OK))
@@ -11533,7 +11432,7 @@ bool image_load_from_path(const char *path, generic_image *dst) {
         goto BAIL;
     if (fread(data, sz, 1, fh) != 1)
         goto BAIL;
-    result = image_load_from_memory(data, (int)sz, dst);
+    result = simage_load_from_memory(data, (int)sz, dst);
 BAIL:
     if (fh)
         fclose(fh);
@@ -11542,16 +11441,11 @@ BAIL:
     return result;
 }
 
-#define _SHIFT(A, B, C, D) (((unsigned int)(A) << 24) | \
-                            ((unsigned int)(B) << 16) | \
-                            ((unsigned int)(C) << 8)  | \
-                            (D))
-
 static int check_if_qoi(unsigned char *data) {
-    return _SHIFT(data[0], data[0], data[0], data[0]) == _SHIFT('q', 'o', 'i', 'f');
+    return _RGBA(data[0], data[0], data[0], data[0]) ==  _RGBA('q', 'o', 'i', 'f');
 }
 
-bool image_load_from_memory(const void *data, size_t data_size, generic_image* dst) {
+bool simage_load_from_memory(const void *data, size_t data_size, simage_buffer *dst) {
     if (!data || data_size <= 0)
         return false;
     int _w, _h, c = 0;
@@ -11579,121 +11473,126 @@ bool image_load_from_memory(const void *data, size_t data_size, generic_image* d
     for (int x = 0; x < _w; x++)
         for (int y = 0; y < _h; y++) {
             unsigned char *p = img_data + (x + _w * y) * 4;
-            dst->buffer[y * _w + x] = RGBA(p[0], p[1], p[2], p[3]);
+            dst->buffer[y * _w + x] = _RGBA(p[0], p[1], p[2], p[3]);
         }
     free(img_data);
     return true;
 }
 
-bool image_save(generic_image *img, const char *path) {
-    // TODO: Integrate stb_image_write.h
-    return false;
-}
-
-void image_destroy(generic_image *img) {
-    if (img && img->buffer)
+void simage_destroy_buffer(simage_buffer *img) {
+    if (img && img->buffer) {
         free(img->buffer);
+        memset(img, 0, sizeof(simage_buffer));
+    }
 }
 
-void image_fill(generic_image *img, int32_t color) {
+void simage_pset(simage_buffer *img, int x, int y, sg_color color) {
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        img->buffer[y * img->width + x] = sg_color_to_int(color);
+}
+
+sg_color simage_pget(simage_buffer *img, int x, int y) {
+    int32_t color = 0;
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        color = img->buffer[y * img->width + x];
+    return int_to_sg_color(color);
+}
+
+void simage_fill(simage_buffer *img, sg_color color) {
     for (int i = 0; i < img->width * img->height; ++i)
-        img->buffer[i] = color;
+        img->buffer[i] = sg_color_to_int(color);
 }
 
-static inline void flood_fn(generic_image *img, int x, int y, int _new, int _old) {
-    if (_new == _old || image_pget(img, x, y) != _old)
-        return;
-
-    int x1 = x;
-    while (x1 < img->width && image_pget(img, x1, y) == _old) {
-        image_pset(img, x1, y, _new);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while (x1 >= 0 && image_pget(img, x1, y) == _old) {
-        image_pset(img, x1, y, _new);
-        x1--;
-    }
-
-    x1 = x;
-    while (x1 < img->width && image_pget(img, x1, y) == _old) {
-        if(y > 0 && image_pget(img, x1, y - 1) == _old)
-            flood_fn(img, x1, y - 1, _new, _old);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while(x1 >= 0 && image_pget(img, x1, y) == _old) {
-        if(y > 0 && image_pget(img, x1, y - 1) == _old)
-            flood_fn(img, x1, y - 1, _new, _old);
-        x1--;
-    }
-
-    x1 = x;
-    while(x1 < img->width && image_pget(img, x1, y) == _old) {
-        if(y < img->height - 1 && image_pget(img, x1, y + 1) == _old)
-            flood_fn(img, x1, y + 1, _new, _old);
-        x1++;
-    }
-
-    x1 = x - 1;
-    while(x1 >= 0 && image_pget(img, x1, y) == _old) {
-        if(y < img->height - 1 && image_pget(img, x1, y + 1) == _old)
-            flood_fn(img, x1, y + 1, _new, _old);
-        x1--;
-    }
-}
-
-void image_flood(generic_image *img, int x, int y, int32_t color) {
-    if (x < 0 || y < 0 || x >= img->width || y >= img->height)
-        return;
-    flood_fn(img, x, y, color, image_pget(img, x, y));
-}
-
-void image_pset(generic_image *img, int x, int y, int32_t color) {
-    if (x >= 0 && y >= 0 && x < img->width && y < img->height)
+void _pset(simage_buffer *img, int x, int y, int32_t color) {
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
         img->buffer[y * img->width + x] = color;
 }
 
-int image_pget(generic_image *img, int x, int y) {
-    return (x >= 0 && y >= 0 && x < img->width && y < img->height) ? img->buffer[y * img->width + x] : 0;
+int32_t _pget(simage_buffer *img, int x, int y) {
+    int32_t color = 0;
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        color = img->buffer[y * img->width + x];
+    return color;
 }
 
-void image_paste(generic_image *dst, generic_image *src, int x, int y) {
+static inline void flood_fn(simage_buffer *img, int x, int y, int _new, int _old) {
+    if (_new == _old || _pget(img, x, y) != _old)
+        return;
+
+    int x1 = x;
+    while (x1 < img->width && _pget(img, x1, y) == _old) {
+        _pset(img, x1, y, _new);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while (x1 >= 0 && _pget(img, x1, y) == _old) {
+        _pset(img, x1, y, _new);
+        x1--;
+    }
+
+    x1 = x;
+    while (x1 < img->width && _pget(img, x1, y) == _old) {
+        if(y > 0 && _pget(img, x1, y - 1) == _old)
+            flood_fn(img, x1, y - 1, _new, _old);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while(x1 >= 0 && _pget(img, x1, y) == _old) {
+        if(y > 0 && _pget(img, x1, y - 1) == _old)
+            flood_fn(img, x1, y - 1, _new, _old);
+        x1--;
+    }
+
+    x1 = x;
+    while(x1 < img->width && _pget(img, x1, y) == _old) {
+        if(y < img->height - 1 && _pget(img, x1, y + 1) == _old)
+            flood_fn(img, x1, y + 1, _new, _old);
+        x1++;
+    }
+
+    x1 = x - 1;
+    while(x1 >= 0 && _pget(img, x1, y) == _old) {
+        if(y < img->height - 1 && _pget(img, x1, y + 1) == _old)
+            flood_fn(img, x1, y + 1, _new, _old);
+        x1--;
+    }
+}
+
+void simage_flood(simage_buffer *img, int x, int y, sg_color color) {
+    if (x < 0 || y < 0 || x >= img->width || y >= img->height)
+        return;
+    flood_fn(img, x, y, sg_color_to_int(color), _pget(img, x, y));
+}
+
+void simage_paste(simage_buffer *dst, simage_buffer *src, int x, int y) {
     for (int ox = 0; ox < src->width; ++ox) {
         for (int oy = 0; oy < src->height; ++oy) {
             if (oy > dst->height)
                 break;
-            image_pset(dst, x + ox, y + oy, image_pget(src, ox, oy));
+            simage_pset(dst, x + ox, y + oy, simage_pget(src, ox, oy));
         }
         if (ox > dst->width)
             break;
     }
 }
 
-void image_clipped_paste(generic_image *dst, generic_image *src, int x, int y, int rx, int ry, int rw, int rh) {
+void simage_clipped_paste(simage_buffer *dst, simage_buffer *src, int x, int y, int rx, int ry, int rw, int rh) {
     for (int ox = 0; ox < rw; ++ox)
         for (int oy = 0; oy < rh; ++oy)
-            image_pset(dst, ox + x, oy + y, image_pget(src, ox + rx, oy + ry));
+            simage_pset(dst, ox + x, oy + y, simage_pget(src, ox + rx, oy + ry));
 }
 
-bool image_dupe(generic_image *src, generic_image *dst) {
-    if (!image_empty(src->width, src->height, 0, dst))
+bool simage_dupe(simage_buffer *src, simage_buffer *dst) {
+    if (!simage_empty(src->width, src->height, sg_black, dst))
         return false;
     memcpy(dst->buffer, src->buffer, src->width * src->height * sizeof(uint32_t));
     return true;
 }
 
-void image_pass_thru(generic_image *img, image_callback_t fn) {
-    int x, y;
-    for (x = 0; x < img->width; ++x)
-        for (y = 0; y < img->height; ++y)
-            img->buffer[y * img->width + x] = fn(x, y, image_pget(img, x, y));
-}
-
-bool image_resized(generic_image *src, int nw, int nh, generic_image *dst) {
-    if (!image_empty(nw, nh, 0, dst))
+bool simage_resized(simage_buffer *src, int nw, int nh, simage_buffer *dst) {
+    if (!simage_empty(nw, nh, sg_black, dst))
         return false;
     int x_ratio = (int)((src->width << 16) / dst->width) + 1;
     int y_ratio = (int)((src->height << 16) / dst->height) + 1;
@@ -11712,15 +11611,15 @@ bool image_resized(generic_image *src, int nw, int nh, generic_image *dst) {
     return true;
 }
 
-void image_resize(generic_image *src, int nw, int nh) {
-    generic_image result;
-    if (!image_resized(src, nw, nh, &result))
+void simage_resize(simage_buffer *src, int nw, int nh) {
+    simage_buffer result;
+    if (!simage_resized(src, nw, nh, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-bool image_rotated(generic_image *src, float angle, generic_image *dst) {
+bool simage_rotated(simage_buffer *src, float angle, simage_buffer *dst) {
     float theta = _RADIANS(angle);
     float c = cosf(theta), s = sinf(theta);
     float r[3][2] = {
@@ -11739,7 +11638,7 @@ bool image_rotated(generic_image *src, float angle, generic_image *dst) {
 
     int dw = (int)ceil(fabsf(mm[1][0]) - mm[0][0]);
     int dh = (int)ceil(fabsf(mm[1][1]) - mm[0][1]);
-    if (!image_empty(dw, dh, 0, dst))
+    if (!simage_empty(dw, dh, sg_black, dst))
         return false;
     int x, y, sx, sy;
     for (x = 0; x < dw; ++x)
@@ -11748,20 +11647,20 @@ bool image_rotated(generic_image *src, float angle, generic_image *dst) {
             sy = ((y + mm[0][1]) * c - (x + mm[0][0]) * s);
             if (sx < 0 || sx >= src->width || sy < 0 || sy >= src->height)
                 continue;
-            image_pset(dst, x, y, image_pget(src, sx, sy));
+            simage_pset(dst, x, y, simage_pget(src, sx, sy));
         }
     return true;
 }
 
-void image_rotate(generic_image *src, float angle) {
-    generic_image result;
-    if (!image_rotated(src, angle, &result))
+void simage_rotate(simage_buffer *src, float angle) {
+    simage_buffer result;
+    if (!simage_rotated(src, angle, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-bool image_clipped(generic_image *src, int rx, int ry, int rw, int rh, generic_image *dst) {
+bool simage_clipped(simage_buffer *src, int rx, int ry, int rw, int rh, simage_buffer *dst) {
     int ox = _CLAMP(rx, 0, src->width);
     int oy = _CLAMP(ry, 0, src->height);
     if (ox >= src->width || oy >= src->height)
@@ -11772,26 +11671,26 @@ bool image_clipped(generic_image *src, int rx, int ry, int rw, int rh, generic_i
     int ih = my - oy;
     if (iw <= 0 || ih <= 0)
         return false;
-    if (!image_empty(iw, ih, 0, dst))
+    if (!simage_empty(iw, ih, sg_black, dst))
         return false;
     for (int px = 0; px < iw; px++)
         for (int py = 0; py < ih; py++) {
             int cx = ox + px;
             int cy = oy + py;
-            image_pset(dst, px, py, image_pget(src, cx, cy));
+            simage_pset(dst, px, py, simage_pget(src, cx, cy));
         }
     return true;
 }
 
-void image_clip(generic_image *src, int rx, int ry, int rw, int rh) {
-    generic_image result;
-    if (!image_clipped(src, rx, ry, rw, rh, &result))
+void simage_clip(simage_buffer *src, int rx, int ry, int rw, int rh) {
+    simage_buffer result;
+    if (!simage_clipped(src, rx, ry, rw, rh, &result))
         return;
     free(src->buffer);
-    memcpy(src, &result, sizeof(generic_image));
+    memcpy(src, &result, sizeof(simage_buffer));
 }
 
-static inline void vline(generic_image *img, int x, int y0, int y1, int32_t color) {
+static inline void vline(simage_buffer *img, int x, int y0, int y1, sg_color color) {
     if (y1 < y0) {
         y0 += y1;
         y1  = y0 - y1;
@@ -11807,10 +11706,10 @@ static inline void vline(generic_image *img, int x, int y0, int y1, int32_t colo
         y1 = img->height - 1;
 
     for(int y = y0; y <= y1; y++)
-        image_pset(img, x, y, color);
+        simage_pset(img, x, y, color);
 }
 
-static inline void hline(generic_image *img, int y, int x0, int x1, int32_t color) {
+static inline void hline(simage_buffer *img, int y, int x0, int x1, sg_color color) {
     if (x1 < x0) {
         x0 += x1;
         x1  = x0 - x1;
@@ -11826,10 +11725,10 @@ static inline void hline(generic_image *img, int y, int x0, int x1, int32_t colo
         x1 = img->width - 1;
 
     for(int x = x0; x <= x1; x++)
-        image_pset(img, x, y, color);
+        simage_pset(img, x, y, color);
 }
 
-void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t color) {
+void simage_draw_line(simage_buffer *img, int x0, int y0, int x1, int y1, sg_color color) {
     if (x0 == x1)
         vline(img, x0, y0, y1, color);
     else if (y0 == y1)
@@ -11839,7 +11738,7 @@ void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t
         int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
         int err = (dx > dy ? dx : -dy) / 2;
 
-        while (image_pset(img, x0, y0, color), x0 != x1 || y0 != y1) {
+        while (simage_pset(img, x0, y0, color), x0 != x1 || y0 != y1) {
             int e2 = err;
             if (e2 > -dx) { err -= dy; x0 += sx; }
             if (e2 <  dy) { err += dx; y0 += sy; }
@@ -11847,13 +11746,13 @@ void image_draw_line(generic_image *img, int x0, int y0, int x1, int y1, int32_t
     }
 }
 
-void image_draw_circle(generic_image *img, int xc, int yc, int r, int32_t color, int fill) {
+void simage_draw_circle(simage_buffer *img, int xc, int yc, int r, sg_color color, int fill) {
     int x = -r, y = 0, err = 2 - 2 * r; /* II. Quadrant */
     do {
-        image_pset(img, xc - x, yc + y, color);    /*   I. Quadrant */
-        image_pset(img, xc - y, yc - x, color);    /*  II. Quadrant */
-        image_pset(img, xc + x, yc - y, color);    /* III. Quadrant */
-        image_pset(img, xc + y, yc + x, color);    /*  IV. Quadrant */
+        simage_pset(img, xc - x, yc + y, color);    /*   I. Quadrant */
+        simage_pset(img, xc - y, yc - x, color);    /*  II. Quadrant */
+        simage_pset(img, xc + x, yc - y, color);    /* III. Quadrant */
+        simage_pset(img, xc + y, yc + x, color);    /*  IV. Quadrant */
 
         if (fill) {
             hline(img, yc - y, xc - x, xc + x, color);
@@ -11868,7 +11767,7 @@ void image_draw_circle(generic_image *img, int xc, int yc, int r, int32_t color,
     } while (x < 0);
 }
 
-void image_draw_rectangle(generic_image *img, int x, int y, int w, int h, int32_t color, int fill) {
+void simage_draw_rectangle(simage_buffer *img, int x, int y, int w, int h, sg_color color, int fill) {
     if (x < 0) {
         w += x;
         x  = 0;
@@ -11899,7 +11798,7 @@ void image_draw_rectangle(generic_image *img, int x, int y, int w, int h, int32_
     }
 }
 
-void image_draw_triangle(generic_image *img, int x0, int y0, int x1, int y1, int x2, int y2, int32_t color, int fill) {
+void simage_draw_triangle(simage_buffer *img, int x0, int y0, int x1, int y1, int x2, int y2, sg_color color, int fill) {
     if (y0 ==  y1 && y0 ==  y2)
         return;
     if (fill) {
@@ -11931,13 +11830,63 @@ void image_draw_triangle(generic_image *img, int x0, int y0, int x1, int y1, int
                 _SWAP(ay, by);
             }
             for (j = ax; j <= bx; ++j)
-                image_pset(img, j, y0 + i, color);
+                simage_pset(img, j, y0 + i, color);
         }
     } else {
-        image_draw_line(img, x0, y0, x1, y1, color);
-        image_draw_line(img, x1, y1, x2, y2, color);
-        image_draw_line(img, x2, y2, x0, y0, color);
+        simage_draw_line(img, x0, y0, x1, y1, color);
+        simage_draw_line(img, x1, y1, x2, y2, color);
+        simage_draw_line(img, x2, y2, x0, y0, color);
     }
 }
 
-#endif // GENERIC_IMPL
+sg_image sg_empty_texture(unsigned int width, unsigned int height) {
+    if (width <= 0 || height <= 0)
+        return (sg_image){.id=SG_INVALID_ID};
+    sg_image_desc desc = {
+        .width = width,
+        .height = height,
+        .pixel_format = SG_PIXELFORMAT_RGBA8,
+        .usage.stream_update = true
+    };
+    return sg_make_image(&desc);
+}
+
+static sg_image image_to_sg(simage_buffer *img) {
+    sg_image texture = sg_empty_texture(img->width, img->height);
+    sg_update_texture_from_buffer(texture, img);
+    return texture;
+}
+
+sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height) {
+    simage_buffer tmp;
+    if (!simage_load_from_path(path, &tmp))
+        return (sg_image){.id=SG_INVALID_ID};
+    if (width)
+        *width = tmp.width;
+    if (height)
+        *height = tmp.height;
+    return image_to_sg(&tmp);
+}
+
+sg_image sg_load_texture_from_memory(unsigned char *data, size_t data_size, unsigned int *width, unsigned int *height) {
+    simage_buffer tmp;
+    if (!simage_load_from_memory(data, data_size, &tmp))
+        return (sg_image){.id=SG_INVALID_ID};
+    if (width)
+        *width = tmp.width;
+    if (height)
+        *height = tmp.height;
+    return image_to_sg(&tmp);
+}
+
+void sg_update_texture_from_buffer(sg_image texture, simage_buffer *img) {
+    if (texture.id == SG_INVALID_ID)
+        return;
+    sg_update_image(texture, &(sg_image_data) {
+        .subimage[0][0] = (sg_range) {
+            .ptr = img->buffer,
+            .size = img->width * img->height * sizeof(int)
+        }
+    });
+}
+#endif

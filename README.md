@@ -1,11 +1,10 @@
-# generic-image
+# sokol_image 
 
-> [!WARNING]
-> Work in progress
+Single header library that wraps [stb_image](https://github.com/nothings/stb) + [qoi](https://github.com/phoboslab/qoi) with some simple image modification functions + sokol_gfx integration.
 
 ## LICENSE
 ```
-generic-image Copyright (C) 2025 George Watson
+sokol_image Copyright (C) 2025 George Watson
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

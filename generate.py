@@ -1,7 +1,7 @@
 import os
 from enum import Enum
 
-with open("src/generic_image.h", "r") as fh:
+with open("src/sokol_image.h", "r") as fh:
     lines = [line.rstrip() for line in fh.readlines()]
 
 first_half = []
@@ -30,7 +30,7 @@ deps = {"stb_image.h": "STB_IMAGE_IMPLEMENTATION",
         "stb_image_write.h": "STB_IMAGE_WRITE_IMPLEMENTATION",
         "qoi.h": "QOI_IMPLEMENTATION"}
 
-with open("generic_image.h", "w") as fh:
+with open("sokol_image.h", "w") as fh:
     fh.write("\n".join(first_half))
     fh.write("\n")
     for dep, define in deps.items():
