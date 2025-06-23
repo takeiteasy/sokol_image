@@ -30,7 +30,7 @@ deps = {"stb_image.h": "STB_IMAGE_IMPLEMENTATION",
         "stb_image_write.h": "STB_IMAGE_WRITE_IMPLEMENTATION",
         "qoi.h": "QOI_IMPLEMENTATION"}
 
-with open("sokol_image.h", "w") as fh:
+with open("sokol_image.h", "w+") as fh:
     fh.write("\n".join(first_half))
     fh.write("\n")
     for dep, define in deps.items():
@@ -38,5 +38,5 @@ with open("sokol_image.h", "w") as fh:
         with open(f"src/{dep}", "r") as sfh:
             fh.write(sfh.read())
         fh.write("\n")
-        fh.write("\n".join(second_half))
+    fh.write("\n".join(second_half))
 
