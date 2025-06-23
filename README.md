@@ -1,14 +1,10 @@
 # sokol_image 
 
-> [!WARNING]
-> Work in progress, functional
-
 Single header library that wraps [stb_image](https://github.com/nothings/stb) + [qoi](https://github.com/phoboslab/qoi) with some simple image modification functions + sokol_gfx integration.
 
 ## TODO
 
 - [ ] Export image to disk
-- [ ] Alternate formatting + reformatting
 
 ## LICENSE
 ```

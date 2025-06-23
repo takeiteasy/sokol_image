@@ -1,27 +1,19 @@
 /* sokol_image.h -- https://github.com/takeiteasy/sokol_image
 
- The MIT License (MIT)
- 
- Copyright (c) 2024 George Watson
- 
- Permission is hereby granted, free of charge, to any person
- obtaining a copy of this software and associated documentation
- files (the "Software"), to deal in the Software without restriction,
- including without limitation the rights to use, copy, modify, merge,
- publish, distribute, sublicense, and/or sell copies of the Software,
- and to permit persons to whom the Software is furnished to do so,
- subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be
- included in all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ sokol_image Copyright (C) 2025 George Watson
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 
 #ifndef SOKOL_IMAGE_HEADER
 #define SOKOL_IMAGE_HEADER
@@ -85,6 +77,12 @@ void simage_draw_line(simage_buffer *img, int x0, int y0, int x1, int y1, sg_col
 void simage_draw_circle(simage_buffer *img, int xc, int yc, int r, sg_color color, int fill);
 void simage_draw_rectangle(simage_buffer *img, int x, int y, int w, int h, sg_color color, int fill);
 void simage_draw_triangle(simage_buffer *img, int x0, int y0, int x1, int y1, int x2, int y2, sg_color color, int fill);
+
+/* These functions were adapted from https://github.com/mattiasgustavsson/libs/blob/main/img.h
+   Copyright Mattias Gustavsson (C) 2019 [MIT/Public Domain] */
+void simage_brightness(simage_buffer *img, float value);
+void simage_contrast(simage_buffer *img, float value);
+void simage_saturation(simage_buffer *img, float value);
 
 sg_image sg_empty_texture(unsigned int width, unsigned int height);
 sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height);
@@ -563,6 +561,106 @@ void simage_draw_triangle(simage_buffer *img, int x0, int y0, int x1, int y1, in
         simage_draw_line(img, x1, y1, x2, y2, color);
         simage_draw_line(img, x2, y2, x0, y0, color);
     }
+}
+
+void simage_brightness(simage_buffer *img, float value) {
+    for (int x = 0; x < img->width; x++)
+        for (int y =  0; y < img->height; y++) {
+            sg_color c = simage_pget(img, x, y);
+            simage_pset(img, x, y, (sg_color) {
+                c.r + value,
+                c.g + value,
+                c.b + value,
+                c.a + value
+            });
+        }
+}
+
+void simage_contrast(simage_buffer *img, float value) {
+    for (int x = 0; x < img->width; x++)
+        for (int y =  0; y < img->height; y++) {
+            sg_color c = simage_pget(img, x, y);
+            simage_pset(img, x, y, (sg_color) {
+                (c.r - .5f) * value + .5f,
+                (c.g - .5f) * value + .5f,
+                (c.r - .5f) * value + .5f,
+                (c.a - .5f) * value + .5f
+            });
+        }
+}
+
+typedef struct hsva {
+    float h;
+    float s;
+    float v;
+    float a;
+} _hsva_t;
+
+static _hsva_t _rgba_to_hsva(sg_color rgb) {
+    float cmin = _MIN(rgb.r, _MIN(rgb.g, rgb.b)); //Min. value of RGB
+    float cmax = _MAX(rgb.r, _MAX(rgb.g, rgb.b)); //Max. value of RGB
+    float cdel = cmax - cmin;   //Delta RGB value
+    _hsva_t hsv = {
+        .v = cmax,
+        .a = rgb.a
+    };
+    if (cdel == 0) { // This is a gray, no chroma...
+        hsv.h = 0;  // HSV results from 0 to 1
+        hsv.s = 0;
+    } else { // Chromatic data...
+        hsv.s = cdel / cmax;
+        float rdel = (((cmax - rgb.r) / 6.0f) + (cdel / 2.0f)) / cdel;
+        float gdel = (((cmax - rgb.g) / 6.0f) + (cdel / 2.0f)) / cdel;
+        float bdel = (((cmax - rgb.b) / 6.0f) + (cdel / 2.0f)) / cdel;
+        if (rgb.r == cmax)
+            hsv.h = bdel - gdel;
+        else if (rgb.g == cmax)
+            hsv.h = ( 1.0f / 3.0f ) + rdel - bdel;
+        else
+            hsv.h = ( 2.0f / 3.0f ) + gdel - rdel;
+        if (hsv.h < 0.0f)
+            hsv.h += 1.0f;
+        if (hsv.h > 1.0f)
+            hsv.h -= 1.0f;
+    }
+    return hsv;
+}
+
+static sg_color _hsva_to_rgba(_hsva_t hsv) {
+    sg_color rgb = {.a = hsv.a};
+    if (hsv.s == 0.0f) { // HSV from 0 to 1
+        rgb.r = hsv.v;
+        rgb.g = hsv.v;
+        rgb.b = hsv.v;
+    } else {
+        float h = hsv.h * 6.0f;
+        if (h == 6.0f)
+            h = 0.0f; // H must be < 1
+        float i = floorf(h);
+        float v1 = hsv.v * (1.0f - hsv.s);
+        float v2 = hsv.v * (1.0f - hsv.s * (h - i));
+        float v3 = hsv.v * (1.0f - hsv.s * (1.0f - (h - i)));
+
+        switch ((int)i) {
+            case 0: { rgb.r = hsv.v; rgb.g = v3   ; rgb.b = v1   ; } break;
+            case 1: { rgb.r = v2   ; rgb.g = hsv.v; rgb.b = v1   ; } break;
+            case 2: { rgb.r = v1   ; rgb.g = hsv.v; rgb.b = v3   ; } break;
+            case 3: { rgb.r = v1   ; rgb.g = v2   ; rgb.b = hsv.v; } break;
+            case 4: { rgb.r = v3   ; rgb.g = v1   ; rgb.b = hsv.v; } break;
+            default:{ rgb.r = hsv.v; rgb.g = v1   ; rgb.b = v2   ; } break;
+        }
+    }
+    return rgb;
+}
+
+void simage_saturation(simage_buffer *img, float value) {
+    for (int x = 0; x < img->width; x++)
+        for (int y =  0; y < img->height; y++) {
+            sg_color c = simage_pget(img, x, y);
+            _hsva_t hsv = _rgba_to_hsva(c);
+            hsv.s = _CLAMP(hsv.s + value, 0.0f, 1.0f);
+            simage_pset(img, x, y, _hsva_to_rgba(hsv));
+        }
 }
 
 sg_image sg_empty_texture(unsigned int width, unsigned int height) {
